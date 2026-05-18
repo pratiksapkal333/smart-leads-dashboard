@@ -1,0 +1,49 @@
+version: "3.9"
+
+services:
+
+  mongodb:
+    image: mongo:7
+    container_name: smartleads-mongodb
+
+    ports:
+      - "27017:27017"
+
+    volumes:
+      - mongodb_data:/data/db
+
+  backend:
+    build: ./smart-leads-dashboard
+
+    container_name: smartleads-backend
+
+    ports:
+      - "5000:5000"
+
+    env_file:
+      - ./smart-leads-dashboard/.env
+
+    depends_on:
+      - mongodb
+
+    volumes:
+      - ./smart-leads-dashboard:/app
+      - /app/node_modules
+
+  frontend:
+    build: ./smart-leads-frontend
+
+    container_name: smartleads-frontend
+
+    ports:
+      - "5173:5173"
+
+    depends_on:
+      - backend
+
+    volumes:
+      - ./smart-leads-frontend:/app
+      - /app/node_modules
+
+volumes:
+  mongodb_data:
