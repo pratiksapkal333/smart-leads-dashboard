@@ -4,6 +4,7 @@ import LeadsTable from "../components/LeadsTable";
 import Pagination from "../components/Pagination";
 import LeadModal from "../components/LeadModal";
 import type { LeadFormData } from "../components/LeadModal";
+
 export interface Lead {
     _id: string;
     name: string;
@@ -31,6 +32,9 @@ export default function Dashboard() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedLead, setSelectedLead] = useState<Lead | undefined>(undefined);
 
+    // 💡 Read from your exact .env variable name to handle clean environment mapping
+    const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
     // Debounce processing wrapper
     useEffect(() => {
         const queryDelayTimer = setTimeout(() => {
@@ -56,8 +60,11 @@ export default function Dashboard() {
             });
 
             const token = localStorage.getItem("token");
-            const response = await fetch(`http://localhost:5000/api/leads?${queryParams}`, {
+
+            // 💡 Updated to use dynamic BASE_URL variable safely
+            const response = await fetch(`${BASE_URL}/leads?${queryParams}`, {
                 headers: {
+                    "Content-Type": "application/json",
                     "Authorization": `Bearer ${token}`
                 }
             });
@@ -65,8 +72,20 @@ export default function Dashboard() {
             if (!response.ok) throw new Error("Failed to pull updated leads data.");
             const data = await response.json();
 
-            setLeads(data.leads || []);
-            setTotalPages(data.totalPages || 1);
+            // 💡 Defensive unpacking: extract from data.leads, data.data, or fallback safely to a direct array
+            if (Array.isArray(data)) {
+                setLeads(data);
+            } else if (data && Array.isArray(data.leads)) {
+                setLeads(data.leads);
+            } else if (data && data.data && Array.isArray(data.data.leads)) {
+                setLeads(data.data.leads);
+            } else if (data && Array.isArray(data.data)) {
+                setLeads(data.data);
+            } else {
+                setLeads([]);
+            }
+
+            setTotalPages(data.totalPages || data.data?.totalPages || 1);
         } catch (err: any) {
             setError(err.message || "An unexpected error occurred.");
         } finally {
@@ -82,11 +101,14 @@ export default function Dashboard() {
     const handleModalSubmit = async (formData: LeadFormData) => {
         try {
             const token = localStorage.getItem("token");
-            const url = selectedLead
-                ? `http://localhost:5000/api/leads/${selectedLead._id}`
-                : "http://localhost:5000/api/leads";
 
-            const method = selectedLead ? "PUT" : "POST";
+            // 💡 Check if we are in Edit mode by looking for selectedLead._id
+            const isEditing = !!selectedLead?._id;
+            const url = isEditing
+                ? `${BASE_URL}/leads/${selectedLead._id}`
+                : `${BASE_URL}/leads`;
+
+            const method = isEditing ? "PATCH" : "POST";
 
             const response = await fetch(url, {
                 method,
@@ -97,9 +119,13 @@ export default function Dashboard() {
                 body: JSON.stringify(formData)
             });
 
-            if (!response.ok) throw new Error("Failed to persist lead details.");
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || "Failed to persist lead changes.");
+            }
 
             setIsModalOpen(false);
+            setSelectedLead(undefined); // 💡 Reset selection after success
             fetchLeads();
         } catch (err: any) {
             alert(err.message);
@@ -110,7 +136,7 @@ export default function Dashboard() {
         if (!confirm("Are you sure you want to completely clear this lead record?")) return;
         try {
             const token = localStorage.getItem("token");
-            const response = await fetch(`http://localhost:5000/api/leads/${id}`, {
+            const response = await fetch(`${BASE_URL}/leads/${id}`, {
                 method: "DELETE",
                 headers: {
                     "Authorization": `Bearer ${token}`
@@ -125,9 +151,9 @@ export default function Dashboard() {
     };
 
     const handleExportCSV = () => {
-        // Construct dynamic file download matching existing table filters
         const queryParams = new URLSearchParams({ search: debouncedSearch, status, source, sort });
-        window.open(`http://localhost:5000/api/leads/export?${queryParams}`, "_blank");
+        // 💡 Dynamic download binding targeting your environment variable
+        window.open(`${BASE_URL}/leads/export?${queryParams}`, "_blank");
     };
 
     return (

@@ -5,6 +5,7 @@ export interface LeadFormData {
     email: string;
     status: "New" | "Contacted" | "Qualified" | "Lost";
     source: "Website" | "Instagram" | "Referral";
+    _id?: string;
 }
 
 interface LeadModalProps {
