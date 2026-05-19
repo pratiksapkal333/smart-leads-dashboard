@@ -61,4 +61,16 @@ Updated the `authMiddleware` to accept the JWT token as a query parameter in add
 * **Property 'leads' does not exist on type**
 Corrected the data extraction logic in the controller to reference `result.data` instead of `result.leads`, aligning the code with the structure returned by the service layer.
 
+## API Documentation
+
+Base URL: `http://localhost:5000/api`
+
+| Endpoint | Method | Description | Auth Required |
+| :--- | :--- | :--- | :--- |
+| `/auth/register` | POST | Register a new user | No |
+| `/auth/login` | POST | Login and receive JWT | No |
+| `/leads` | GET | Get all leads (paginated) | Yes |
+| `/leads` | POST | Create a new lead | Yes |
+| `/leads/:id` | DELETE | Delete a lead | Yes (Admin only) |
+| `/leads/export` | GET | Download leads as CSV | Yes |
 ---
