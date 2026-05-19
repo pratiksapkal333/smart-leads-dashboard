@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-    baseURL: "https://smart-leads-dashboard-backend-1m9c.onrender.com",
+    baseURL: "https://smart-leads-dashboard-backend-1m9c.onrender.com/api",
     headers: {
         "Content-Type": "application/json",
     },
