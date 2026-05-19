@@ -11,7 +11,7 @@ const app = express();
 app.use(cors({
     origin: "https://smart-leads-dashboard-jqit.onrender.com",
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
