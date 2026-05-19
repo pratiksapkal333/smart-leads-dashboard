@@ -1,3 +1,4 @@
+import { useAuth } from "../context/AuthContext";
 import type { Lead } from "../pages/Dashboard";
 
 interface LeadsTableProps {
@@ -7,24 +8,12 @@ interface LeadsTableProps {
 }
 
 export default function LeadsTable({ leads, onEdit, onDelete }: LeadsTableProps) {
-    const getStatusStyles = (status: string) => {
-        switch (status) {
-            case "Qualified":
-                return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
-            case "Contacted":
-                return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";
-            case "Lost":
-                return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
-            case "New":
-            default:
-                return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
-        }
-    };
+    const { isAdmin } = useAuth(); // Grab the role check from context
 
     return (
-        <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-800 w-full">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-left text-sm">
-                <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 font-medium">
+        <div className="w-full overflow-x-auto border border-gray-200 dark:border-gray-800 rounded-xl bg-white dark:bg-gray-900 shadow-sm transition-colors duration-200">
+            <table className="w-full border-collapse text-left text-base">
+                <thead className="bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold border-b border-gray-200 dark:border-gray-700">
                     <tr>
                         <th className="px-6 py-4">Name</th>
                         <th className="px-6 py-4">Email</th>
@@ -33,30 +22,38 @@ export default function LeadsTable({ leads, onEdit, onDelete }: LeadsTableProps)
                         <th className="px-6 py-4 text-right">Actions</th>
                     </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-800 text-gray-900 dark:text-gray-100 font-medium">
                     {leads.map((lead) => (
-                        <tr key={lead._id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                            <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{lead.name}</td>
-                            <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{lead.email}</td>
-                            <td className="px-6 py-4">
-                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusStyles(lead.status)}`}>
+                        <tr key={lead._id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+                            <td className="px-6 py-4.5">{lead.name}</td>
+                            <td className="px-6 py-4.5 text-gray-500 dark:text-gray-400">{lead.email}</td>
+                            <td className="px-6 py-4.5">
+                                <span className={`px-3 py-1 rounded-full text-sm font-bold ${lead.status === "New" ? "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400" :
+                                        lead.status === "Contacted" ? "bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400" :
+                                            lead.status === "Qualified" ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400" :
+                                                "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400"
+                                    }`}>
                                     {lead.status}
                                 </span>
                             </td>
-                            <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{lead.source}</td>
-                            <td className="px-6 py-4 text-right space-x-2">
+                            <td className="px-6 py-4.5 text-gray-600 dark:text-gray-400">{lead.source}</td>
+                            <td className="px-6 py-4.5 text-right space-x-2">
                                 <button
                                     onClick={() => onEdit(lead)}
-                                    className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-xs font-semibold px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+                                    className="px-4 py-2 text-sm font-bold bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-blue-600 dark:text-blue-400 rounded-lg transition-all cursor-pointer"
                                 >
                                     Edit
                                 </button>
-                                <button
-                                    onClick={() => onDelete(lead._id)}
-                                    className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-xs font-semibold px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
-                                >
-                                    Delete
-                                </button>
+
+                                {/* 🔐 Role-Based Access Control: Only admins see or use Delete */}
+                                {isAdmin && (
+                                    <button
+                                        onClick={() => onDelete(lead._id)}
+                                        className="px-4 py-2 text-sm font-bold bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 rounded-lg transition-all cursor-pointer"
+                                    >
+                                        Delete
+                                    </button>
+                                )}
                             </td>
                         </tr>
                     ))}

@@ -1,128 +1,137 @@
-import { useEffect, useState } from "react";
-import api from "../services/api";
-import useDebounce from "../hooks/useDebounce";
-
+import { useState, useEffect } from "react";
 import ControlBar from "../components/ControlBar";
 import LeadsTable from "../components/LeadsTable";
 import Pagination from "../components/Pagination";
-
+import LeadModal from "../components/LeadModal";
+import type { LeadFormData } from "../components/LeadModal";
 export interface Lead {
     _id: string;
     name: string;
     email: string;
-    status: string;
-    source: string;
-    createdAt: string;
+    status: "New" | "Contacted" | "Qualified" | "Lost";
+    source: "Website" | "Instagram" | "Referral";
 }
 
 export default function Dashboard() {
-    const [leads, setLeads] = useState<Lead[]>([]);
-    const [loading, setLoading] = useState(false);
-
+    // Search, sorting and filtration configurations
     const [search, setSearch] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
     const [status, setStatus] = useState("");
     const [source, setSource] = useState("");
     const [sort, setSort] = useState("latest");
     const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
 
-    const [pagination, setPagination] = useState({
-        totalPages: 1,
-        hasNextPage: false,
-    });
+    // Dynamic UI state buckets
+    const [leads, setLeads] = useState<Lead[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState("");
 
-    const debouncedSearch = useDebounce(search, 300);
-
+    // Modal view handlers
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingLead, setEditingLead] = useState<Lead | null>(null);
-    const [formData, setFormData] = useState({ name: "", email: "", status: "New", source: "Website" });
+    const [selectedLead, setSelectedLead] = useState<Lead | undefined>(undefined);
 
+    // Debounce processing wrapper
+    useEffect(() => {
+        const queryDelayTimer = setTimeout(() => {
+            setDebouncedSearch(search);
+            setPage(1); // Reset page focus when query adjusts
+        }, 400);
+
+        return () => clearTimeout(queryDelayTimer);
+    }, [search]);
+
+    // Fetch master pipeline matching backend criteria
     const fetchLeads = async () => {
+        setIsLoading(true);
+        setError("");
         try {
-            setLoading(true);
-            const response = await api.get("/leads", {
-                params: {
-                    search: debouncedSearch,
-                    status,
-                    source,
-                    sort,
-                    page,
-                },
+            const queryParams = new URLSearchParams({
+                search: debouncedSearch,
+                status,
+                source,
+                sort,
+                page: page.toString(),
+                limit: "10"
             });
-            setLeads(response.data.data);
-            setPagination(response.data.pagination);
-        } catch (error) {
-            console.error("Failed to fetch leads", error);
+
+            const token = localStorage.getItem("token");
+            const response = await fetch(`http://localhost:5000/api/leads?${queryParams}`, {
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) throw new Error("Failed to pull updated leads data.");
+            const data = await response.json();
+
+            setLeads(data.leads || []);
+            setTotalPages(data.totalPages || 1);
+        } catch (err: any) {
+            setError(err.message || "An unexpected error occurred.");
         } finally {
-            setLoading(false);
+            setIsLoading(false);
         }
     };
-
-    useEffect(() => {
-        setPage(1);
-    }, [debouncedSearch, status, source, sort]);
 
     useEffect(() => {
         fetchLeads();
     }, [debouncedSearch, status, source, sort, page]);
 
-    const handleCreateLeadClick = () => {
-        setEditingLead(null);
-        setFormData({ name: "", email: "", status: "New", source: "Website" });
-        setIsModalOpen(true);
-    };
-
-    const handleEditLead = (lead: Lead) => {
-        setEditingLead(lead);
-        setFormData({ name: lead.name, email: lead.email, status: lead.status, source: lead.source });
-        setIsModalOpen(true);
-    };
-
-    const handleFormSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    // Create or update execution pipeline
+    const handleModalSubmit = async (formData: LeadFormData) => {
         try {
-            if (editingLead) {
-                await api.put(`/leads/${editingLead._id}`, formData);
-            } else {
-                await api.post("/leads", formData);
-            }
+            const token = localStorage.getItem("token");
+            const url = selectedLead
+                ? `http://localhost:5000/api/leads/${selectedLead._id}`
+                : "http://localhost:5000/api/leads";
+
+            const method = selectedLead ? "PUT" : "POST";
+
+            const response = await fetch(url, {
+                method,
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify(formData)
+            });
+
+            if (!response.ok) throw new Error("Failed to persist lead details.");
+
             setIsModalOpen(false);
             fetchLeads();
-        } catch (error) {
-            console.error("Form handling execution failed", error);
-            alert("Error saving lead information.");
+        } catch (err: any) {
+            alert(err.message);
         }
     };
 
-    const handleDeleteLead = async (id: string) => {
-        if (window.confirm("Are you sure you want to completely clear this lead record registry?")) {
-            try {
-                await api.delete(`/leads/${id}`);
-                fetchLeads();
-            } catch (error) {
-                console.error("Failed to delete lead", error);
-                alert("Error removing entry.");
-            }
-        }
-    };
-
-    const handleCSVExportClick = async () => {
+    const handleDelete = async (id: string) => {
+        if (!confirm("Are you sure you want to completely clear this lead record?")) return;
         try {
-            const response = await api.get("/export/leads", { responseType: "blob" });
-            const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
-            const downloadLink = document.createElement("a");
-            downloadLink.href = blobUrl;
-            downloadLink.setAttribute("download", `Leads_Report_${new Date().toISOString().slice(0, 10)}.csv`);
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            downloadLink.remove();
-        } catch (error) {
-            console.error("CSV compilation failed", error);
-            alert("Unable to process document transfer stream parameters.");
+            const token = localStorage.getItem("token");
+            const response = await fetch(`http://localhost:5000/api/leads/${id}`, {
+                method: "DELETE",
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) throw new Error("Could not process record removal.");
+            fetchLeads();
+        } catch (err: any) {
+            alert(err.message);
         }
+    };
+
+    const handleExportCSV = () => {
+        // Construct dynamic file download matching existing table filters
+        const queryParams = new URLSearchParams({ search: debouncedSearch, status, source, sort });
+        window.open(`http://localhost:5000/api/leads/export?${queryParams}`, "_blank");
     };
 
     return (
-        <div className="space-y-6 p-6 w-full">
+        <div className="p-6 space-y-6 max-w-[1600px] mx-auto w-full box-border">
             <ControlBar
                 search={search}
                 setSearch={setSearch}
@@ -132,99 +141,47 @@ export default function Dashboard() {
                 setSource={setSource}
                 sort={sort}
                 setSort={setSort}
-                onCreateClick={handleCreateLeadClick}
-                onExportCSV={handleCSVExportClick}
+                onCreateClick={() => {
+                    setSelectedLead(undefined);
+                    setIsModalOpen(true);
+                }}
+                onExportCSV={handleExportCSV}
             />
 
-            {loading ? (
-                <div className="card text-center py-8 text-gray-500 dark:text-gray-400 font-medium">
-                    Synchronizing network entries...
+            {isLoading ? (
+                <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                    <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-gray-500 font-medium">Fetching dashboard records...</p>
+                </div>
+            ) : error ? (
+                <div className="p-4 rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 font-medium">
+                    Error: {error}
                 </div>
             ) : leads.length === 0 ? (
-                <div className="card text-center py-8 text-gray-500 dark:text-gray-400 font-medium">
-                    No active leads match the defined query filters.
+                <div className="flex flex-col items-center justify-center py-20 border border-dashed border-gray-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900">
+                    <p className="text-gray-400 text-lg font-medium">No matching lead records located.</p>
                 </div>
             ) : (
-                <div className="card overflow-hidden !p-0">
-                    <LeadsTable leads={leads} onEdit={handleEditLead} onDelete={handleDeleteLead} />
-                </div>
+                <>
+                    <LeadsTable
+                        leads={leads}
+                        onEdit={(lead) => {
+                            setSelectedLead(lead);
+                            setIsModalOpen(true);
+                        }}
+                        onDelete={handleDelete}
+                    />
+                    <Pagination page={page} setPage={setPage} totalPages={totalPages} />
+                </>
             )}
 
-            <Pagination page={page} setPage={setPage} totalPages={pagination.totalPages} />
-
-            {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-gray-800 w-full max-w-md p-6 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 mx-4">
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
-                            {editingLead ? "✏️ Edit Lead Details" : "➕ Create New Lead Prospect"}
-                        </h3>
-                        <form onSubmit={handleFormSubmit} className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Full Name</label>
-                                <input
-                                    type="text"
-                                    required
-                                    className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Email Address</label>
-                                <input
-                                    type="email"
-                                    required
-                                    className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    value={formData.email}
-                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                />
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Lifecycle Status</label>
-                                    <select
-                                        className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        value={formData.status}
-                                        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                                    >
-                                        <option value="New">New</option>
-                                        <option value="Contacted">Contacted</option>
-                                        <option value="Qualified">Qualified</option>
-                                        <option value="Lost">Lost</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Acquisition Source</label>
-                                    <select
-                                        className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        value={formData.source}
-                                        onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-                                    >
-                                        <option value="Website">Website</option>
-                                        <option value="Instagram">Instagram</option>
-                                        <option value="Referral">Referral</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div className="flex justify-end gap-2 pt-4 border-t border-gray-100 dark:border-gray-700">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsModalOpen(false)}
-                                    className="px-4 py-2 text-xs font-medium text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="px-4 py-2 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-md transition-all"
-                                >
-                                    {editingLead ? "Save Changes" : "Create Registry"}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+            <LeadModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSubmit={handleModalSubmit}
+                title={selectedLead ? "Modify Existing Lead" : "Register New Lead Source"}
+                initialData={selectedLead}
+            />
         </div>
     );
 }
