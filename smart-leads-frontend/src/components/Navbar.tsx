@@ -1,25 +1,10 @@
 export default function Navbar() {
     return (
-        <div style={{
-            height: "100%",
-            width: "100%",
-            backgroundColor: "#ffffff",
-            borderBottom: "1px solid #e5e7eb",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "0 24px",
-            boxSizing: "border-box"
-        }}>
-            <h3 style={{ fontWeight: 600, fontSize: "1.125rem", margin: 0 }}>
+        <div className="h-full w-full bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-6 box-border transition-colors duration-200">
+            <h3 className="text-gray-900 dark:text-white font-semibold text-lg m-0 transition-colors duration-200">
                 Leads Dashboard
             </h3>
-
-            <div style={{
-                fontSize: "0.875rem",
-                fontWeight: 500,
-                color: "#4b5563"
-            }}>
+            <div className="text-gray-600 dark:text-gray-400 text-sm font-medium transition-colors duration-200">
                 User Profile
             </div>
         </div>

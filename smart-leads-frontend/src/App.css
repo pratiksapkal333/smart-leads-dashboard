@@ -1,100 +1,10 @@
-/* Global reset */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
 }
 
-body {
-  background-color: #f3f4f6;
-  color: #111827;
-}
-
-/* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
-}
-
-/* Sidebar styling */
-.sidebar {
-  background: #ffffff;
-  border-right: 1px solid #e5e7eb;
-  height: 100vh;
-  padding: 20px;
-}
-
-/* Navbar styling */
-.navbar {
-  background: #ffffff;
-  border-bottom: 1px solid #e5e7eb;
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
-}
-
-/* Card / table container */
-.card {
-  background: white;
-  border-radius: 10px;
-  padding: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-/* Buttons */
-button {
-  padding: 6px 12px;
-  border: none;
-  background: #2563eb;
-  color: white;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-button:hover {
-  background: #1d4ed8;
-}
-
-/* Inputs */
 input,
 select {
-  padding: 8px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
   outline: none;
-}
-
-input:focus,
-select:focus {
-  border-color: #2563eb;
-}
-
-/* Table styling */
-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: white;
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-th,
-td {
-  padding: 12px;
-  border-bottom: 1px solid #e5e7eb;
-  text-align: left;
-}
-
-th {
-  background: #f9fafb;
-}
-
-/* Pagination */
-.pagination {
-  display: flex;
-  gap: 10px;
-  margin-top: 15px;
-  justify-content: center;
 }

@@ -4,28 +4,23 @@ export default function Pagination({
     totalPages,
 }: any) {
     return (
-        <div className="pagination" style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "16px"
-        }}>
+        <div className="flex gap-4 mt-4 justify-center items-center">
             <button
                 disabled={page === 1}
                 onClick={() => setPage(page - 1)}
-                style={{ backgroundColor: page === 1 ? "#d1d5db" : "#2563eb", cursor: page === 1 ? "not-allowed" : "pointer" }}
+                className="px-4 py-2 text-xs font-medium rounded-lg disabled:bg-gray-200 dark:disabled:bg-gray-700 disabled:text-gray-400 dark:disabled:text-gray-500 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-sm"
             >
                 Prev
             </button>
 
-            <span style={{ fontWeight: 500, color: "#4b5563", fontSize: "0.95rem" }}>
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
                 Page {page} of {totalPages || 1}
             </span>
 
             <button
                 disabled={page === totalPages || totalPages === 0}
                 onClick={() => setPage(page + 1)}
-                style={{ backgroundColor: (page === totalPages || totalPages === 0) ? "#d1d5db" : "#2563eb", cursor: (page === totalPages || totalPages === 0) ? "not-allowed" : "pointer" }}
+                className="px-4 py-2 text-xs font-medium rounded-lg disabled:bg-gray-200 dark:disabled:bg-gray-700 disabled:text-gray-400 dark:disabled:text-gray-500 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-700 text-white transition-all shadow-sm"
             >
                 Next
             </button>
