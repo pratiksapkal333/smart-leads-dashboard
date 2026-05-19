@@ -33,7 +33,7 @@ export default function Dashboard() {
     const [selectedLead, setSelectedLead] = useState<Lead | undefined>(undefined);
 
     // Read base API URL from environment variable
-    const BASE_URL = import.meta.env.VITE_API_URL || "https://smart-leads-dashboard-backend-1m9c.onrender.com";
+    const BASE_URL = import.meta.env.VITE_API_URL || "https://smart-leads-dashboard-backend-1m9c.onrender.com/api";
 
     // Debounce search input to prevent excessive API calls
     useEffect(() => {
